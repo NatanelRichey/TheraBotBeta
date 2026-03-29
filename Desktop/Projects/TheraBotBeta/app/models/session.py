@@ -14,6 +14,7 @@ class Session(BaseModel):
     id: UUID = Field(default_factory=uuid4)
     user_id: UUID
     messages: list[ChatMessage] = Field(default_factory=list)
+    turn_count: int = 0
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 

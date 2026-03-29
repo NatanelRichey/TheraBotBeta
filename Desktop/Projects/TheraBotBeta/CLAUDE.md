@@ -21,11 +21,15 @@ This is a portfolio project for a Generative AI Engineer Lead role. Every design
 ```
 app/                    → FastAPI application
   api/                  → Route handlers (thin — delegate to services)
+    chat.py             → POST /chat, /chat/stream, /chat/compare, /chat/compare/vote
   core/                 → Config, logging, dependency injection
   models/               → Pydantic schemas (request/response models)
   services/             → All business logic lives here
     llm/                → Provider abstraction, routing, cost tracking
     prompts/            → Template management, pipeline, A/B testing
+      templates.py      → Disk loader with in-memory cache
+      pipeline.py       → Multi-stage system prompt assembler
+      experiments.py    → ExperimentRunner — concurrent A/B variant execution
     rag/                → Embeddings, vector store, retrieval, grounding
     agents/             → LangGraph agents, memory, safety routing
     guardrails/         → Input/output filters, safety rules
@@ -33,7 +37,16 @@ app/                    → FastAPI application
     evaluation/         → LLM-as-judge, metrics, eval datasets
 static/                 → Single-file chat UI (index.html) — served at GET /
 scripts/                → Utility scripts (seeding, evals, fine-tuning)
-data/                   → Knowledge base content, eval datasets, prompt files
+data/
+  prompts/              → Prompt template .txt files (version-controlled)
+    identity_warm_v1.txt
+    identity_warm_v2.txt
+    identity_clinical_v1.txt
+    format_short_v1.txt
+    format_long_v1.txt
+    safety_escalation_v1.txt
+  chroma/               → ChromaDB vector store (gitignored)
+  evals/                → Eval datasets in JSONL format (gitignored)
 tests/                  → Unit, integration, and eval tests
 ```
 
@@ -73,7 +86,8 @@ tests/                  → Unit, integration, and eval tests
 - NEVER hardcode API keys. Always use environment variables.
 - NEVER log user conversation content at INFO level (use DEBUG, and only in dev)
 - All user input is validated through Pydantic models before processing
-- The `/data` directory is gitignored
+- `data/prompts/` is version-controlled (prompt templates are application code)
+- `data/chroma/` and `data/evals/` are gitignored (runtime data)
 
 ### Git
 - Conventional commits: `feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`
@@ -82,7 +96,7 @@ tests/                  → Unit, integration, and eval tests
 
 ## Current Phase
 Update this as you progress:
-**Active Phase: 1 — Foundation**
+**Active Phase: 2 — Prompt Engineering & Pipeline**
 
 ## Phase Notes
 - **Phase 4 (Agents):** Wire semantic cache into the agent router — check cache before any LLM dispatch, write through on completion. Goal is to avoid redundant LLM calls for semantically equivalent inputs, which compounds across multi-step agent workflows.
@@ -132,25 +146,20 @@ python scripts/run_evals.py
 Profile is set per-request via `"profile": "default"` or `"profile": "cheap"` in the request body.
 OpenRouter takes precedence when `OPENROUTER_API_KEY` is set — direct keys (`OPENAI_API_KEY`, etc.) are ignored for routing in that case.
 
+## Phase Notes
+
+### Phase 2 — Prompt Engineering & Pipeline (complete)
+- `data/prompts/` — 6 .txt template files (identity ×3, format ×2, safety ×1)
+- `templates.py` — disk loader, double-checked in-memory cache, structured log on first load
+- `pipeline.py` — 4-stage assembler (identity → memory placeholder → safety → format)
+- `experiments.py` — `ExperimentRunner`: 4 experiment types, `asyncio.gather` concurrency
+- `Session.turn_count` — incremented on every user message; experiment fires on every 10th turn
+- `POST /chat/compare` — explicit side-by-side comparison, returns both variants
+- `POST /chat/compare/vote` — logs `comparison_vote` structured entry; no DB storage
+
+**Stretch goal (Phase 2, not yet done):** Streaming compare UI in `static/index.html` — compare mode toggle, side-by-side rendering, Prefer button posting to `/chat/compare/vote`.
+
 ## Planned Features
-
-### Side-by-Side Prompt Comparison (`/chat/compare`)
-Extends the A/B testing framework in `app/services/prompts/experiments.py`.
-
-**API**
-- `POST /chat/compare` — accepts a standard `ChatRequest`, runs it through two prompt variants concurrently (`asyncio.gather`), returns `{ variant_a: {...}, variant_b: {...} }`
-- `POST /chat/compare/vote` — accepts `{ session_id, winner: "a" | "b" }`, logs the preference signal into experiment metrics
-
-**Implementation notes**
-- Both LLM calls must be fired with `asyncio.gather` — never sequentially
-- Vote handler logs to the same metrics store used by the eval pipeline
-- Route handlers stay thin — logic lives in `app/services/prompts/experiments.py`
-- Check semantic cache before firing either LLM call — a cache hit on variant A or B should short-circuit that branch entirely to save cost
-
-**UI** (`static/index.html`)
-- "Compare mode" toggle in the header
-- When active, bot responses render side-by-side with a "Prefer this" button under each
-- Clicking a button POSTs to `/chat/compare/vote` with the winning variant
 
 ## Things That Will Trip You Up
 - ChromaDB and pgvector have different query APIs — the `vector_store.py` abstraction handles this

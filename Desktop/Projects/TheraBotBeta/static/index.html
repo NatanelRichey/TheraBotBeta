@@ -276,6 +276,21 @@
     padding: 0 4px;
   }
 
+  .bubble-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    color: var(--moss);
+    background: rgba(122, 140, 110, 0.12);
+    border: 1px solid rgba(122, 140, 110, 0.25);
+    border-radius: 20px;
+    padding: 2px 9px;
+    margin-bottom: 5px;
+    letter-spacing: 0.2px;
+  }
+
   .message-row.user .bubble-meta {
     text-align: right;
   }
@@ -502,6 +517,8 @@
     background: var(--cream);
     overflow: hidden;
     width: 100%;
+    flex-shrink: 0;
+    min-height: 200px;
   }
 
   .compare-header {
@@ -534,6 +551,8 @@
     grid-template-columns: 1fr 1fr;
     gap: 1px;
     background: var(--sand);
+    overflow-y: auto;
+    max-height: 320px;
   }
 
   .compare-panel {
@@ -770,6 +789,7 @@
 
   // Init
   document.getElementById('stat-session').textContent = sessionId.slice(0, 8) + '...';
+  document.getElementById('stat-model').textContent = profileModels[currentProfile];
 
   function switchProfile(btn) {
     document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('active'));
@@ -802,7 +822,7 @@
     if (w) w.remove();
   }
 
-  function addMessage(role, text) {
+  function addMessage(role, text, badge) {
     hideWelcome();
     const messages = document.getElementById('messages');
     const isUser = role === 'user';
@@ -820,6 +840,14 @@
 
     const bubbleWrap = document.createElement('div');
     bubbleWrap.className = 'bubble-wrap';
+
+    if (badge) {
+      const badgeEl = document.createElement('div');
+      badgeEl.className = 'bubble-badge';
+      badgeEl.textContent = badge;
+      bubbleWrap.appendChild(badgeEl);
+    }
+
     const bubble = document.createElement('div');
     bubble.className = `bubble ${role}`;
     if (isUser) {
@@ -887,15 +915,29 @@
   // ── A/B Compare ──────────────────────────────────────────────────────────
 
   // DEV: renders a mock compare card so the layout can be tested without
-  // a real /chat/compare call. Remove or gate behind a flag before prod.
+  // a real backend call. Remove or gate behind a flag before prod.
   function triggerCompareDemo() {
-    const mockA = "I hear you — carrying that kind of weight day after day is exhausting. Anxiety often signals that something important is asking for your attention. What feels like the heaviest part right now?";
-    const mockB = "That makes a lot of sense to feel. You're not alone in this, and the fact that you're naming it is already a meaningful step. Would you like to explore together what might be underneath these feelings?";
     hideWelcome();
-    addCompareCard(mockA, mockB, crypto.randomUUID());
+    addCompareCard({
+      session_id: sessionId,
+      message_id: crypto.randomUUID(),
+      experiment_type: 'DEMO',
+      variant_a: {
+        response: "I hear you — carrying that kind of weight day after day is exhausting. What feels like the heaviest part right now?",
+        model: 'demo',
+        prompt_variant: 'identity_warm_v1'
+      },
+      variant_b: {
+        response: "That makes a lot of sense to feel. You're not alone in this. Would you like to explore together what might be underneath these feelings?",
+        model: 'demo',
+        prompt_variant: 'identity_clinical_v1'
+      }
+    });
   }
 
-  function addCompareCard(textA, textB, sid) {
+  // compareData shape: { session_id, message_id, experiment_type, variant_a, variant_b }
+  // where variant_a/b have: { response, model, prompt_variant }
+  function addCompareCard(compareData) {
     const messages = document.getElementById('messages');
 
     const card = document.createElement('div');
@@ -903,13 +945,13 @@
 
     const header = document.createElement('div');
     header.className = 'compare-header';
-    header.innerHTML = '<span class="compare-badge">A / B</span><span class="compare-label">Which response feels more helpful?</span>';
+    header.innerHTML = `<span class="compare-badge">A / B</span><span class="compare-label">Which response feels more helpful? <em style="font-weight:400;opacity:0.7">${compareData.experiment_type}</em></span>`;
 
     const panels = document.createElement('div');
     panels.className = 'compare-panels';
 
-    const { el: elA, btn: btnA } = _buildComparePanel('A', textA);
-    const { el: elB, btn: btnB } = _buildComparePanel('B', textB);
+    const { el: elA, btn: btnA } = _buildComparePanel('A', compareData.variant_a.response);
+    const { el: elB, btn: btnB } = _buildComparePanel('B', compareData.variant_b.response);
     panels.appendChild(elA);
     panels.appendChild(elB);
 
@@ -917,10 +959,13 @@
     card.appendChild(panels);
     messages.appendChild(card);
 
-    btnA.addEventListener('click', () => _castVote('a', sid, card, elA, elB));
-    btnB.addEventListener('click', () => _castVote('b', sid, card, elB, elA));
+    btnA.addEventListener('click', () => _castVote('a', compareData, card, elA, elB));
+    btnB.addEventListener('click', () => _castVote('b', compareData, card, elB, elA));
 
-    scrollToBottom();
+    setTimeout(() => {
+      const messages = document.getElementById('messages');
+      messages.scrollTop = messages.scrollHeight;
+    }, 50);
   }
 
   function _buildComparePanel(label, text) {
@@ -945,7 +990,7 @@
     return { el, btn };
   }
 
-  async function _castVote(variant, sid, card, winnerEl, loserEl) {
+  async function _castVote(winner, compareData, card, winnerEl, loserEl) {
     card.querySelectorAll('.prefer-btn').forEach(b => b.disabled = true);
     winnerEl.querySelector('.prefer-btn').classList.add('chosen');
     winnerEl.classList.add('winner');
@@ -961,9 +1006,18 @@
       await fetch(`${API_BASE}/chat/compare/vote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sid, winner: variant })
+        body: JSON.stringify({
+          session_id: compareData.session_id,
+          message_id: compareData.message_id,
+          experiment_type: compareData.experiment_type,
+          variant_a: compareData.variant_a.prompt_variant,
+          variant_b: compareData.variant_b.prompt_variant,
+          winner: winner
+        })
       });
-    } catch (_) { /* backend not wired yet — silent */ }
+    } catch (_) { /* silent — vote is best-effort */ }
+
+    addMessage('bot', compareData[`variant_${winner}`].response, '✓ Preferred response');
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1000,10 +1054,11 @@
         return;
       }
 
-      removeTypingIndicator();
-      const botBubble = addMessage('bot', '');
+      // All turns stream as NDJSON. On experiment turns the done chunk carries
+      // an `experiment` field — show the compare card instead of a bot bubble.
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let botBubble = null;
       let fullText = '';
 
       while (true) {
@@ -1017,12 +1072,26 @@
           try {
             const data = JSON.parse(line);
             if (data.delta) {
+              if (!botBubble) {
+                removeTypingIndicator();
+                botBubble = addMessage('bot', '');
+              }
               fullText += data.delta;
               botBubble.innerHTML = renderMarkdown(fullText);
               scrollToBottom();
             }
-            if (data.done && data.usage) {
-              updateStats(data.usage.total_tokens, data.usage.cost_usd);
+            if (data.done) {
+              if (!botBubble) removeTypingIndicator(); // experiment turn — no deltas
+              if (data.experiment) {
+                if (botBubble) {
+                  const row = botBubble.parentElement?.parentElement;
+                  if (row && row.classList.contains('message-row')) row.remove();
+                  else botBubble.closest('.message-row')?.remove();
+                }
+                addCompareCard(data.experiment);
+              } else if (data.usage) {
+                updateStats(data.usage.total_tokens, data.usage.cost_usd);
+              }
             }
           } catch (e) { /* skip malformed chunks */ }
         }

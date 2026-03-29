@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -46,6 +47,20 @@ app.add_middleware(
 
 
 # --- Exception handlers ---
+
+@app.exception_handler(RequestValidationError)
+async def validation_error_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    logger = get_logger(__name__)
+    body: bytes = await request.body()
+    logger.warning(
+        "request_validation_error",
+        path=request.url.path,
+        method=request.method,
+        errors=exc.errors(),
+        body=body.decode("utf-8", errors="replace"),
+    )
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
+
 
 @app.exception_handler(LLMProviderError)
 async def llm_error_handler(request: Request, exc: LLMProviderError) -> JSONResponse:

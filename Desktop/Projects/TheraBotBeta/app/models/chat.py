@@ -41,6 +41,34 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     session_id: UUID
     message: ChatMessage
+    turn_count: int | None = None
+    experiment_type: str | None = None  # set when this turn was an A/B experiment
+
+
+# CompareVariant and CompareResponse are defined before StreamChunk so that
+# StreamChunk can reference CompareResponse without a forward reference.
+
+class CompareVariant(BaseModel):
+    response: str
+    model: str
+    prompt_variant: str
+
+
+class CompareResponse(BaseModel):
+    session_id: UUID
+    message_id: UUID
+    experiment_type: str
+    variant_a: CompareVariant
+    variant_b: CompareVariant
+
+
+class VoteRequest(BaseModel):
+    session_id: UUID
+    message_id: UUID
+    experiment_type: str
+    variant_a: str  # prompt_variant identifier from the original response
+    variant_b: str  # prompt_variant identifier from the original response
+    winner: Literal["a", "b"]
 
 
 class StreamChunkUsage(BaseModel):
@@ -55,4 +83,6 @@ class StreamChunk(BaseModel):
     message_id: UUID
     delta: str
     done: bool = False
-    usage: StreamChunkUsage | None = None
+    turn_count: int | None = None          # present on done chunks
+    usage: StreamChunkUsage | None = None  # present on done chunks (normal turns)
+    experiment: CompareResponse | None = None  # present on done chunks (experiment turns)

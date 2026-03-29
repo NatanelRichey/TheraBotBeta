@@ -98,6 +98,36 @@ tests/                  → Unit, integration, and eval tests
 Update this as you progress:
 **Active Phase: 2 — Prompt Engineering & Pipeline**
 
+## RAG Architecture (Phase 3 + 4)
+
+Two separate vector stores with different purposes:
+
+```
+knowledge_store  → static wellness content (DBT, psychoeducation, coping strategies)
+                   shared across all users, seeded once, updated manually
+                   lives in: data/knowledge/
+
+episodic_store   → per-user conversation history
+                   one collection per user_id, grows over time
+                   embedded and retrieved by semantic similarity to current message
+                   built in Phase 4 alongside MemoryAgent
+```
+
+Retrieval strategy:
+- Phase 3: `knowledge_store` only
+- Phase 4: both stores, results merged before context injection
+
+Embedding model: TBD (decided in Phase 3)
+Vector DB: ChromaDB (dev), pgvector (prod)
+
+## MemoryAgent (Phase 4)
+
+Manages two memory types:
+- **Episodic memory:** past conversation turns embedded into `episodic_store`, retrieved by semantic similarity to current message
+- **Working memory:** rolling summary of current session injected at the memory pipeline stage (the `# TODO` placeholder in `pipeline.py`)
+
+The `# TODO` in `pipeline.py` stage 2 will be replaced by MemoryAgent output in Phase 4.
+
 ## Phase Notes
 - **Phase 4 (Agents):** Wire semantic cache into the agent router — check cache before any LLM dispatch, write through on completion. Goal is to avoid redundant LLM calls for semantically equivalent inputs, which compounds across multi-step agent workflows.
 
@@ -121,8 +151,14 @@ mypy app/
 # Run eval suite (slow)
 pytest tests/evals/ -v -m eval
 
-# Seed vector database
+# Seed vector database (upsert — safe to re-run)
 python scripts/seed_knowledge.py
+
+# Seed vector database (reset collection first)
+python scripts/seed_knowledge.py --reset
+
+# Clean raw JSONL knowledge chunks before seeding
+python scripts/clean_knowledge.py
 
 # Run evaluation benchmark
 python scripts/run_evals.py

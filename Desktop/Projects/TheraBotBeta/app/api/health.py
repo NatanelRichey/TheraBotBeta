@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 
+import httpx
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -42,6 +43,18 @@ async def readiness() -> JSONResponse:
     checks["anthropic"] = "ok" if settings.anthropic_api_key else "missing key"
 
     if not settings.openai_api_key and not settings.anthropic_api_key:
+        healthy = False
+
+    # ChromaDB reachability
+    try:
+        async with httpx.AsyncClient() as http:
+            resp = await http.get(
+                f"{settings.chroma_url}/api/v2/heartbeat",
+                timeout=2.0,
+            )
+        checks["chromadb"] = "ok" if resp.status_code == 200 else f"http {resp.status_code}"
+    except Exception as exc:
+        checks["chromadb"] = f"unreachable: {exc}"
         healthy = False
 
     status = "ok" if healthy else "degraded"

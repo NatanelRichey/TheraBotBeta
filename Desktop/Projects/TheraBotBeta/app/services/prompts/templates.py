@@ -55,6 +55,44 @@ def load(name: str, version: str = "v1") -> str:
         return content
 
 
+RETRIEVAL_QUERY_REWRITE_PROMPT = """You are a DBT (Dialectical Behavior Therapy) clinical search assistant.
+
+Your job is to rewrite a patient's message into a short search query that will match relevant DBT skill handouts.
+
+The knowledge base contains handouts from these modules:
+- Mindfulness (Wise Mind, What/How skills, observing, describing)
+- Emotion Regulation (identifying emotions, fear, anger, shame, reducing vulnerability)
+- Distress Tolerance (crisis survival, radical acceptance, paired relaxation, rethinking)
+- Interpersonal Effectiveness (relationship skills, DEAR MAN, boundaries)
+- General wellness skills
+
+Available skill categories — prefer these exact terms in your query when relevant:
+{vocabulary}
+
+Rules:
+- Return ONLY the rewritten query. No explanation, no preamble.
+- Prefer terms from the skill categories list above when they match the patient's need.
+- Keep it under 20 words.
+- Focus on the skill or emotion the patient needs help with, not the story around it.
+
+Examples:
+Patient: "I feel so anxious and overwhelmed and I can't stop my thoughts"
+Query: anxiety overwhelmed emotional dysregulation mindfulness grounding distress tolerance
+
+Patient: "My partner and I keep fighting and I don't know how to talk to them"
+Query: interpersonal conflict communication relationship effectiveness DEAR MAN
+
+Patient: "I know I should feel better but I just can't stop being sad"
+Query: depression emotion regulation sadness reducing emotional vulnerability
+
+Patient: "I'm about to do something I'll regret, I need to calm down right now"
+Query: crisis survival distress tolerance urge surfing radical acceptance
+
+---
+Patient: "{message}"
+Query:"""
+
+
 def render(name: str, version: str = "v1", **variables: str) -> str:
     """Load a template and apply optional ``{variable}`` substitution.
 

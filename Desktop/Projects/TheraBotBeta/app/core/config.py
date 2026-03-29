@@ -51,6 +51,7 @@ class Settings(BaseSettings):
 
     # Vector DB
     chroma_persist_dir: str = "./data/chroma"
+    chroma_url: str = "http://localhost:8001"
     pgvector_url: str = ""
 
     # Cost tracking

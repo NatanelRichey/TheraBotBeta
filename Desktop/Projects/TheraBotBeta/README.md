@@ -35,6 +35,8 @@ curl http://localhost:8000/health
 # {"status": "ok"}
 ```
 
+Open **http://localhost:8000** in your browser to use the chat UI.
+
 ## Project Phases
 
 | Phase | Focus | Status |

@@ -4,12 +4,36 @@ services:
     ports:
       - "8000:8000"
     env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - CHROMA_PERSIST_DIR=/app/data/chroma
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     volumes:
       - ./data:/app/data
+    healthcheck:
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+  # chromadb:
+  #   image: chromadb/chroma:latest
+  #   ports:
+  #     - "8001:8000"
+  #   volumes:
+  #     - ./data/chroma:/chroma/chroma
+  #   restart: unless-stopped

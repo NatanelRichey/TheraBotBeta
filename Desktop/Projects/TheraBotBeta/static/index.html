@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TheraBot</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F5F0E8;
+    --warm-white: #FAF7F2;
+    --sand: #E8DFD0;
+    --clay: #C4A882;
+    --terracotta: #C17B5C;
+    --moss: #7A8C6E;
+    --bark: #5C4A35;
+    --charcoal: #2C2420;
+    --muted: #9B8B7A;
+    --bubble-user: #A07850;
+    --bubble-bot: #FFFFFF;
+    --shadow: rgba(92, 74, 53, 0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(196, 168, 130, 0.15) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(122, 140, 110, 0.1) 0%, transparent 60%);
+  }
+
+  .app {
+    width: 100%;
+    max-width: 740px;
+    height: 90vh;
+    max-height: 820px;
+    display: flex;
+    flex-direction: column;
+    background: var(--warm-white);
+    border-radius: 28px;
+    box-shadow: 0 8px 40px var(--shadow), 0 2px 8px rgba(92,74,53,0.06);
+    overflow: hidden;
+    border: 1px solid rgba(196, 168, 130, 0.3);
+  }
+
+  /* Header */
+  .header {
+    padding: 20px 28px 16px;
+    background: var(--warm-white);
+    border-bottom: 1px solid var(--sand);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .avatar {
+    width: 44px;
+    height: 44px;
+    background: #A07850;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(160,120,80,0.3);
+  }
+
+  .header-info h1 {
+    font-family: 'Lora', serif;
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--charcoal);
+    letter-spacing: -0.2px;
+  }
+
+  .header-info p {
+    font-size: 12px;
+    color: var(--moss);
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 2px;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--moss);
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  /* Profile switcher */
+  .profile-switcher {
+    display: flex;
+    background: var(--sand);
+    border-radius: 20px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .profile-btn {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 17px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: transparent;
+    color: var(--muted);
+    letter-spacing: 0.1px;
+  }
+
+  .profile-btn.active {
+    background: var(--warm-white);
+    color: var(--bark);
+    box-shadow: 0 1px 4px var(--shadow);
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    padding: 9px 28px;
+    background: var(--cream);
+    border-bottom: 1px solid var(--sand);
+    display: flex;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11.5px;
+    color: var(--muted);
+  }
+
+  .stat-label {
+    font-weight: 400;
+  }
+
+  .stat-value {
+    font-weight: 500;
+    color: var(--bark);
+  }
+
+  .stat-divider {
+    width: 1px;
+    height: 12px;
+    background: var(--clay);
+    opacity: 0.3;
+  }
+
+  /* Messages */
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scroll-behavior: smooth;
+  }
+
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--sand); border-radius: 2px; }
+
+  /* Message rows */
+  .message-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    animation: fadeUp 0.3s ease forwards;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message-row.user {
+    flex-direction: row-reverse;
+  }
+
+  .message-row .bubble-wrap {
+    max-width: 82%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .message-row.user .bubble-wrap {
+    align-items: flex-end;
+  }
+
+  .message-row.bot .bubble-wrap {
+    align-items: flex-start;
+  }
+
+  .msg-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+    margin-bottom: 2px;
+  }
+
+  .msg-avatar.bot {
+    background: #A07850;
+    box-shadow: 0 2px 6px rgba(160,120,80,0.25);
+  }
+
+  .msg-avatar.user {
+    background: #FFFFFF;
+    border: 1.5px solid var(--sand);
+    color: var(--terracotta);
+    font-size: 15px;
+  }
+
+  .bubble {
+    max-width: 100%;
+    padding: 10px 15px;
+    border-radius: 18px;
+    font-size: 14.5px;
+    line-height: 1.55;
+    position: relative;
+  }
+
+  .bubble.bot {
+    background: var(--bubble-bot);
+    color: var(--charcoal);
+    border-bottom-left-radius: 5px;
+    box-shadow: 0 2px 10px var(--shadow);
+    border: 1px solid rgba(196, 168, 130, 0.2);
+  }
+
+  .bubble.user {
+    background: var(--bubble-user);
+    color: #FAF0E6;
+    border-bottom-right-radius: 5px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .bubble-meta {
+    font-size: 10.5px;
+    color: var(--muted);
+    margin-top: 4px;
+    padding: 0 4px;
+  }
+
+  .message-row.user .bubble-meta {
+    text-align: right;
+  }
+
+  /* Typing indicator */
+  .typing-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    animation: fadeUp 0.3s ease forwards;
+  }
+
+  .typing-bubble {
+    background: var(--bubble-bot);
+    border: 1px solid rgba(196, 168, 130, 0.2);
+    box-shadow: 0 2px 10px var(--shadow);
+    padding: 14px 18px;
+    border-radius: 18px;
+    border-bottom-left-radius: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .typing-dot {
+    width: 7px;
+    height: 7px;
+    background: var(--clay);
+    border-radius: 50%;
+    animation: bounce 1.2s ease-in-out infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* Welcome state */
+  .welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px;
+    gap: 16px;
+    animation: fadeUp 0.5s ease forwards;
+  }
+
+  .welcome-icon {
+    width: 64px;
+    height: 64px;
+    background: #A07850;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(160,120,80,0.3);
+    margin-bottom: 8px;
+  }
+
+  .welcome h2 {
+    font-family: 'Lora', serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--charcoal);
+    letter-spacing: -0.3px;
+  }
+
+  .welcome p {
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 320px;
+    line-height: 1.7;
+  }
+
+  .welcome-prompts {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+    width: 100%;
+    max-width: 380px;
+  }
+
+  .prompt-chip {
+    padding: 11px 18px;
+    background: var(--cream);
+    border: 1px solid var(--sand);
+    border-radius: 12px;
+    font-size: 13px;
+    color: var(--bark);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 400;
+  }
+
+  .prompt-chip:hover {
+    background: var(--sand);
+    border-color: var(--clay);
+    transform: translateX(3px);
+  }
+
+  /* Input area */
+  .input-area {
+    padding: 16px 20px 20px;
+    background: var(--warm-white);
+    border-top: 1px solid var(--sand);
+    flex-shrink: 0;
+  }
+
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--cream);
+    border: 1.5px solid var(--sand);
+    border-radius: 20px;
+    padding: 8px 8px 8px 18px;
+    transition: border-color 0.2s;
+  }
+
+  .input-row:focus-within {
+    border-color: var(--clay);
+    box-shadow: 0 0 0 3px rgba(196,168,130,0.15);
+  }
+
+  textarea {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--charcoal);
+    resize: none;
+    outline: none;
+    line-height: 1.5;
+    max-height: 120px;
+    min-height: 22px;
+  }
+
+  textarea::placeholder { color: var(--muted); }
+
+  .send-btn {
+    width: 34px;
+    height: 34px;
+    background: var(--bark);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    color: var(--cream);
+  }
+
+  .send-btn:hover:not(:disabled) {
+    background: #A07850;
+    transform: scale(1.05);
+  }
+
+  .send-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  .send-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .input-hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+    padding: 0 6px;
+    opacity: 0.7;
+  }
+
+  .hidden { display: none !important; }
+
+  /* Header right group */
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Dev A/B trigger button */
+  .dev-ab-btn {
+    padding: 5px 11px;
+    border: 1.5px dashed var(--clay);
+    background: transparent;
+    border-radius: 8px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--terracotta);
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.1px;
+  }
+
+  .dev-ab-btn:hover { background: rgba(193,123,92,0.08); }
+
+  /* A/B Compare card */
+  .compare-card {
+    animation: fadeUp 0.35s ease forwards;
+    border-radius: 16px;
+    border: 1.5px solid var(--sand);
+    background: var(--cream);
+    overflow: hidden;
+    width: 100%;
+  }
+
+  .compare-header {
+    padding: 9px 16px;
+    background: var(--sand);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(196,168,130,0.4);
+  }
+
+  .compare-badge {
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--terracotta);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.6px;
+  }
+
+  .compare-label {
+    font-size: 12.5px;
+    color: var(--bark);
+    font-weight: 500;
+  }
+
+  .compare-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--sand);
+  }
+
+  .compare-panel {
+    padding: 14px 16px;
+    background: var(--warm-white);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: background 0.25s, opacity 0.25s;
+  }
+
+  .compare-panel.winner { background: #f0f5ee; }
+  .compare-panel.loser  { background: var(--cream); opacity: 0.55; }
+
+  .compare-panel-label {
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+  }
+
+  .compare-panel-body {
+    font-size: 13.5px;
+    line-height: 1.6;
+    color: var(--charcoal);
+    flex: 1;
+  }
+
+  .prefer-btn {
+    align-self: flex-start;
+    padding: 7px 15px;
+    border: 1.5px solid var(--clay);
+    background: transparent;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--bark);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .prefer-btn:hover:not(:disabled) {
+    background: var(--bark);
+    color: var(--cream);
+    border-color: var(--bark);
+  }
+
+  .prefer-btn:disabled { cursor: not-allowed; }
+
+  .prefer-btn.chosen {
+    background: var(--moss);
+    color: #fff;
+    border-color: var(--moss);
+    opacity: 1 !important;
+  }
+
+  .compare-voted-msg {
+    padding: 8px 16px;
+    background: rgba(122,140,110,0.1);
+    border-top: 1px solid rgba(122,140,110,0.2);
+    font-size: 12px;
+    color: var(--moss);
+    font-weight: 500;
+    text-align: center;
+  }
+
+  /* Markdown rendering inside bot bubbles */
+  .bubble.bot strong { font-weight: 600; color: var(--charcoal); }
+  .bubble.bot em { font-style: italic; }
+  .bubble.bot del { text-decoration: line-through; opacity: 0.7; }
+  .bubble.bot code {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    background: var(--sand);
+    padding: 1px 5px;
+    border-radius: 4px;
+  }
+  .bubble.bot pre {
+    background: var(--sand);
+    border-radius: 8px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    margin: 6px 0;
+  }
+  .bubble.bot pre code {
+    background: none;
+    padding: 0;
+    font-size: 12.5px;
+  }
+  .bubble.bot ul, .bubble.bot ol {
+    padding-left: 18px;
+    margin: 4px 0;
+  }
+  .bubble.bot li { margin: 2px 0; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="avatar">
+        <svg width="36" height="26" viewBox="-40 -44 80 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M-32,0 C-32,-20 -12,-20 0,0 C12,20 32,20 32,0 C32,-20 12,-20 0,0 C-12,20 -32,20 -32,0Z" stroke="white" stroke-width="2.2" fill="none"/>
+          <path d="M0,-14 C0,-14 -10,-22 -10,-28 C-10,-34 0,-36 0,-28 C0,-36 10,-34 10,-28 C10,-22 0,-14 0,-14Z" fill="white"/>
+        </svg>
+      </div>
+      <div class="header-info">
+        <h1>TheraBot</h1>
+        <p><span class="status-dot"></span> Here to listen</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="profile-switcher">
+        <button class="profile-btn" data-profile="default" onclick="switchProfile(this)">Default</button>
+        <button class="profile-btn active" data-profile="cheap" onclick="switchProfile(this)">Lite</button>
+      </div>
+      <button class="dev-ab-btn" onclick="triggerCompareDemo()" title="DEV: render a mock A/B compare card">⚡ A/B</button>
+    </div>
+  </div>
+
+  <!-- Stats bar -->
+  <div class="stats-bar">
+    <div class="stat">
+      <span class="stat-label">Model</span>
+      <span class="stat-value" id="stat-model">gpt-4o → claude</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat-label">Tokens</span>
+      <span class="stat-value" id="stat-tokens">—</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat-label">Cost</span>
+      <span class="stat-value" id="stat-cost">—</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat">
+      <span class="stat-label">Session</span>
+      <span class="stat-value" id="stat-session">—</span>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div class="messages" id="messages">
+    <div class="welcome" id="welcome">
+      <div class="welcome-icon">
+        <svg width="40" height="30" viewBox="-40 -44 80 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M-32,0 C-32,-20 -12,-20 0,0 C12,20 32,20 32,0 C32,-20 12,-20 0,0 C-12,20 -32,20 -32,0Z" stroke="white" stroke-width="2.2" fill="none"/>
+          <path d="M0,-14 C0,-14 -10,-22 -10,-28 C-10,-34 0,-36 0,-28 C0,-36 10,-34 10,-28 C10,-22 0,-14 0,-14Z" fill="white"/>
+        </svg>
+      </div>
+      <h2>How are you feeling today?</h2>
+      <p>This is a safe space to reflect, explore your thoughts, and find a little calm.</p>
+      <div class="welcome-prompts">
+        <button class="prompt-chip" onclick="usePrompt(this)">I've been feeling anxious lately...</button>
+        <button class="prompt-chip" onclick="usePrompt(this)">I'm struggling with motivation</button>
+        <button class="prompt-chip" onclick="usePrompt(this)">I can't seem to quiet my mind at night</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-area">
+    <div class="input-row">
+      <textarea
+        id="input"
+        placeholder="Share what's on your mind..."
+        rows="1"
+        onkeydown="handleKey(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()" title="Send">
+        <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+    <p class="input-hint">TheraBot is not a licensed therapist · Enter to send · Shift+Enter for new line</p>
+  </div>
+
+</div>
+
+<script>
+  // Lightweight markdown renderer for bot bubbles.
+  // HTML is escaped first so user-sourced content can never inject tags.
+  function renderMarkdown(text) {
+    // 1. Escape HTML entities
+    const escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    return escaped
+      // Fenced code blocks (```lang\n...\n```)
+      .replace(/```[\w]*\n?([\s\S]*?)```/g, (_, code) => `<pre><code>${code.trimEnd()}</code></pre>`)
+      // Bold: **text** or __text__
+      .replace(/\*\*(.+?)\*\*|__(.+?)__/g, (_, a, b) => `<strong>${a ?? b}</strong>`)
+      // Italic: *text* or _text_ (not inside words)
+      .replace(/(?<!\w)\*(?!\s)(.+?)(?<!\s)\*(?!\w)|(?<!\w)_(?!\s)(.+?)(?<!\s)_(?!\w)/g, (_, a, b) => `<em>${a ?? b}</em>`)
+      // Strikethrough: ~~text~~
+      .replace(/~~(.+?)~~/g, '<del>$1</del>')
+      // Inline code: `code`
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      // Unordered list items: lines starting with - or *
+      .replace(/^[ \t]*[-*] (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
+      // Ordered list items: lines starting with 1. 2. etc.
+      .replace(/^[ \t]*\d+\. (.+)$/gm, '<li>$1</li>')
+      // Double newline → paragraph break, single newline → <br>
+      .replace(/\n{2,}/g, '<br><br>')
+      .replace(/\n/g, '<br>');
+  }
+
+  // Config — served from the same origin as the backend
+  const API_BASE = '';
+
+  // State
+  const sessionId = crypto.randomUUID();
+  const userId = crypto.randomUUID();
+  let currentProfile = 'cheap';
+  let totalTokens = 0;
+  let totalCost = 0;
+  let messageCount = 0;
+  let isStreaming = false;
+
+  const profileModels = {
+    default: 'gpt-4o → claude',
+    cheap: 'deepseek → kimi'
+  };
+
+  // Init
+  document.getElementById('stat-session').textContent = sessionId.slice(0, 8) + '...';
+
+  function switchProfile(btn) {
+    document.querySelectorAll('.profile-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentProfile = btn.dataset.profile;
+    document.getElementById('stat-model').textContent = profileModels[currentProfile];
+  }
+
+  function usePrompt(btn) {
+    const text = btn.textContent.trim();
+    document.getElementById('input').value = text;
+    autoResize(document.getElementById('input'));
+    document.getElementById('input').focus();
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function hideWelcome() {
+    const w = document.getElementById('welcome');
+    if (w) w.remove();
+  }
+
+  function addMessage(role, text) {
+    hideWelcome();
+    const messages = document.getElementById('messages');
+    const isUser = role === 'user';
+
+    const row = document.createElement('div');
+    row.className = `message-row ${role}`;
+
+    const avatarEl = document.createElement('div');
+    avatarEl.className = `msg-avatar ${role}`;
+    if (isUser) {
+      avatarEl.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#A07850" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
+    } else {
+      avatarEl.innerHTML = `<svg width="22" height="17" viewBox="-40 -44 80 72" fill="none"><path d="M-32,0 C-32,-20 -12,-20 0,0 C12,20 32,20 32,0 C32,-20 12,-20 0,0 C-12,20 -32,20 -32,0Z" stroke="white" stroke-width="2.5" fill="none"/><path d="M0,-14 C0,-14 -10,-22 -10,-28 C-10,-34 0,-36 0,-28 C0,-36 10,-34 10,-28 C10,-22 0,-14 0,-14Z" fill="white"/></svg>`;
+    }
+
+    const bubbleWrap = document.createElement('div');
+    bubbleWrap.className = 'bubble-wrap';
+    const bubble = document.createElement('div');
+    bubble.className = `bubble ${role}`;
+    if (isUser) {
+      bubble.textContent = text;
+    } else {
+      bubble.innerHTML = renderMarkdown(text);
+    }
+
+    const meta = document.createElement('div');
+    meta.className = 'bubble-meta';
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    meta.textContent = now;
+
+    bubbleWrap.appendChild(bubble);
+    bubbleWrap.appendChild(meta);
+    row.appendChild(avatarEl);
+    row.appendChild(bubbleWrap);
+    messages.appendChild(row);
+    scrollToBottom();
+    return bubble;
+  }
+
+  function addTypingIndicator() {
+    hideWelcome();
+    const messages = document.getElementById('messages');
+    const row = document.createElement('div');
+    row.className = 'typing-row';
+    row.id = 'typing';
+
+    const avatarEl = document.createElement('div');
+    avatarEl.className = 'msg-avatar bot';
+    avatarEl.innerHTML = `<svg width="22" height="17" viewBox="-40 -44 80 72" fill="none"><path d="M-32,0 C-32,-20 -12,-20 0,0 C12,20 32,20 32,0 C32,-20 12,-20 0,0 C-12,20 -32,20 -32,0Z" stroke="white" stroke-width="2.5" fill="none"/><path d="M0,-14 C0,-14 -10,-22 -10,-28 C-10,-34 0,-36 0,-28 C0,-36 10,-34 10,-28 C10,-22 0,-14 0,-14Z" fill="white"/></svg>`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'typing-bubble';
+    bubble.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+
+    row.appendChild(avatarEl);
+    row.appendChild(bubble);
+    messages.appendChild(row);
+    scrollToBottom();
+  }
+
+  function removeTypingIndicator() {
+    const t = document.getElementById('typing');
+    if (t) t.remove();
+  }
+
+  function scrollToBottom() {
+    const messages = document.getElementById('messages');
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function updateStats(tokens, cost) {
+    if (tokens) {
+      totalTokens += tokens;
+      document.getElementById('stat-tokens').textContent = totalTokens.toLocaleString();
+    }
+    if (cost) {
+      totalCost += cost;
+      document.getElementById('stat-cost').textContent = '$' + totalCost.toFixed(4);
+    }
+  }
+
+  // ── A/B Compare ──────────────────────────────────────────────────────────
+
+  // DEV: renders a mock compare card so the layout can be tested without
+  // a real /chat/compare call. Remove or gate behind a flag before prod.
+  function triggerCompareDemo() {
+    const mockA = "I hear you — carrying that kind of weight day after day is exhausting. Anxiety often signals that something important is asking for your attention. What feels like the heaviest part right now?";
+    const mockB = "That makes a lot of sense to feel. You're not alone in this, and the fact that you're naming it is already a meaningful step. Would you like to explore together what might be underneath these feelings?";
+    hideWelcome();
+    addCompareCard(mockA, mockB, crypto.randomUUID());
+  }
+
+  function addCompareCard(textA, textB, sid) {
+    const messages = document.getElementById('messages');
+
+    const card = document.createElement('div');
+    card.className = 'compare-card';
+
+    const header = document.createElement('div');
+    header.className = 'compare-header';
+    header.innerHTML = '<span class="compare-badge">A / B</span><span class="compare-label">Which response feels more helpful?</span>';
+
+    const panels = document.createElement('div');
+    panels.className = 'compare-panels';
+
+    const { el: elA, btn: btnA } = _buildComparePanel('A', textA);
+    const { el: elB, btn: btnB } = _buildComparePanel('B', textB);
+    panels.appendChild(elA);
+    panels.appendChild(elB);
+
+    card.appendChild(header);
+    card.appendChild(panels);
+    messages.appendChild(card);
+
+    btnA.addEventListener('click', () => _castVote('a', sid, card, elA, elB));
+    btnB.addEventListener('click', () => _castVote('b', sid, card, elB, elA));
+
+    scrollToBottom();
+  }
+
+  function _buildComparePanel(label, text) {
+    const el = document.createElement('div');
+    el.className = 'compare-panel';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'compare-panel-label';
+    lbl.textContent = `Variant ${label}`;
+
+    const body = document.createElement('div');
+    body.className = 'compare-panel-body';
+    body.innerHTML = renderMarkdown(text);
+
+    const btn = document.createElement('button');
+    btn.className = 'prefer-btn';
+    btn.textContent = 'Prefer this';
+
+    el.appendChild(lbl);
+    el.appendChild(body);
+    el.appendChild(btn);
+    return { el, btn };
+  }
+
+  async function _castVote(variant, sid, card, winnerEl, loserEl) {
+    card.querySelectorAll('.prefer-btn').forEach(b => b.disabled = true);
+    winnerEl.querySelector('.prefer-btn').classList.add('chosen');
+    winnerEl.classList.add('winner');
+    loserEl.classList.add('loser');
+
+    const msg = document.createElement('div');
+    msg.className = 'compare-voted-msg';
+    msg.textContent = '✓ Preference recorded — thank you';
+    card.appendChild(msg);
+    scrollToBottom();
+
+    try {
+      await fetch(`${API_BASE}/chat/compare/vote`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sid, winner: variant })
+      });
+    } catch (_) { /* backend not wired yet — silent */ }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async function sendMessage() {
+    const input = document.getElementById('input');
+    const text = input.value.trim();
+    if (!text || isStreaming) return;
+
+    input.value = '';
+    input.style.height = 'auto';
+    isStreaming = true;
+    document.getElementById('send-btn').disabled = true;
+    messageCount++;
+
+    addMessage('user', text);
+    addTypingIndicator();
+
+    try {
+      const response = await fetch(`${API_BASE}/chat/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          session_id: sessionId,
+          content: text,
+          profile: currentProfile
+        })
+      });
+
+      if (!response.ok) {
+        removeTypingIndicator();
+        addMessage('bot', 'Something went wrong. Please make sure the backend is running.');
+        return;
+      }
+
+      removeTypingIndicator();
+      const botBubble = addMessage('bot', '');
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n').filter(l => l.trim());
+
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line);
+            if (data.delta) {
+              fullText += data.delta;
+              botBubble.innerHTML = renderMarkdown(fullText);
+              scrollToBottom();
+            }
+            if (data.done && data.usage) {
+              updateStats(data.usage.total_tokens, data.usage.cost_usd);
+            }
+          } catch (e) { /* skip malformed chunks */ }
+        }
+      }
+
+    } catch (err) {
+      removeTypingIndicator();
+      addMessage('bot', 'Could not connect to TheraBot. Make sure the server is running.');
+    } finally {
+      isStreaming = false;
+      document.getElementById('send-btn').disabled = false;
+      input.focus();
+    }
+  }
+</script>
+
+</body>
+</html>

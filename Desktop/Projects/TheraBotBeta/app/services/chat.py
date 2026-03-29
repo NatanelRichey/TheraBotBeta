@@ -18,6 +18,8 @@ from app.models.session import Session
 from app.services.llm.router import LLMRouter
 from app.services.prompts.experiments import ExperimentRunner
 from app.services.prompts.pipeline import assemble
+from app.services.rag.grounding import format_context
+from app.services.rag.retriever import KnowledgeRetriever
 from app.services.session_store import SessionStore
 
 logger = get_logger(__name__)
@@ -32,11 +34,28 @@ class ChatService:
         cheap_router: LLMRouter,
         store: SessionStore,
         experiment_runner: ExperimentRunner,
+        retriever: KnowledgeRetriever | None = None,
     ) -> None:
         self._default_router = default_router
         self._cheap_router = cheap_router
         self._store = store
         self._experiment_runner = experiment_runner
+        self._retriever = retriever
+
+    async def _build_knowledge_context(self, message: str) -> str:
+        """Retrieve relevant DBT chunks and format them as a context block.
+
+        Returns an empty string when no retriever is configured or retrieval fails,
+        so the pipeline degrades gracefully to no-RAG behaviour.
+        """
+        if self._retriever is None:
+            return ""
+        try:
+            results = await self._retriever.retrieve(message)
+            return format_context(results)
+        except Exception as exc:
+            logger.warning("rag_retrieval_failed", error=str(exc))
+            return ""
 
     def _get_router(self, request: ChatRequest) -> LLMRouter:
         return self._cheap_router if request.profile == "cheap" else self._default_router
@@ -62,7 +81,8 @@ class ChatService:
                 experiment_type=compare_result.experiment_type,
             )
 
-        system_prompt = assemble()
+        knowledge_context = await self._build_knowledge_context(request.content)
+        system_prompt = assemble(knowledge_context=knowledge_context)
         llm_messages = self._build_llm_messages(session, system_prompt)
         response = await self._get_router(request).complete(llm_messages)
         assistant_message = ChatMessage(
@@ -128,7 +148,8 @@ class ChatService:
             )
             return
 
-        system_prompt = assemble()
+        knowledge_context = await self._build_knowledge_context(request.content)
+        system_prompt = assemble(knowledge_context=knowledge_context)
         llm_messages = self._build_llm_messages(session, system_prompt)
         message_id = uuid4()
         accumulated: list[str] = []

@@ -51,8 +51,17 @@ class Settings(BaseSettings):
 
     # Vector DB
     chroma_persist_dir: str = "./data/chroma"
+    episodic_chroma_dir: str = "./data/episodic"
     chroma_url: str = "http://localhost:8001"
     pgvector_url: str = ""
+    rag_score_threshold: float = Field(default=0.5, ge=0.0, le=1.0)
+
+    # Agent / memory settings
+    psych_profile_rag_threshold: int = Field(default=5, ge=1)
+    working_memory_rebuild_interval: int = Field(default=20, ge=1)
+    episodic_top_k: int = Field(default=3, ge=1)
+    session_history_window: int = Field(default=30, ge=1)
+    longterm_chroma_dir: str = "./data/longterm"
 
     # Cost tracking
     monthly_budget_usd: float = Field(default=10.0, ge=0.0)  # hard stop in dollars
@@ -61,6 +70,7 @@ class Settings(BaseSettings):
     # Evaluation
     eval_model: str = "gpt-4o-mini"
     eval_dataset_path: str = "./data/evals/"
+    turn_trace_jsonl_path: str = "./data/evals/traces.jsonl"
 
     # LLM call behaviour
     llm_timeout_seconds: float = 30.0

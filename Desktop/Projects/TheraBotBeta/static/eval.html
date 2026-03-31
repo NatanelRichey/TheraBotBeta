@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TheraBot Debug</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #F5F0E8;
+    --warm-white: #FAF7F2;
+    --sand: #E8DFD0;
+    --clay: #C4A882;
+    --terracotta: #C17B5C;
+    --moss: #7A8C6E;
+    --bark: #5C4A35;
+    --charcoal: #2C2420;
+    --muted: #9B8B7A;
+    --shadow: rgba(92, 74, 53, 0.12);
+    --green: #5a8a5a;
+    --orange: #c17b2c;
+    --red: #b84040;
+    --blue: #4a6fa5;
+    --sidebar-w: 260px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(196,168,130,0.1) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(122,140,110,0.07) 0%, transparent 60%);
+  }
+
+  /* ── Top bar ── */
+  .topbar {
+    height: 52px;
+    background: var(--warm-white);
+    border-bottom: 1px solid var(--sand);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 16px;
+    flex-shrink: 0;
+    box-shadow: 0 1px 4px var(--shadow);
+  }
+
+  .topbar-title {
+    font-family: 'Lora', serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--charcoal);
+  }
+
+  .topbar-sep { color: var(--sand); }
+
+  .topbar a {
+    font-size: 12px;
+    color: var(--muted);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .topbar a:hover { color: var(--terracotta); }
+
+  .user-input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .user-input-wrap label { font-size: 12px; color: var(--muted); }
+
+  .user-input-wrap input {
+    border: 1px solid var(--sand);
+    background: var(--cream);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--charcoal);
+    width: 260px;
+    outline: none;
+  }
+  .user-input-wrap input:focus { border-color: var(--clay); }
+
+  .btn-sm {
+    padding: 5px 12px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: inherit;
+  }
+  .btn-primary { background: var(--terracotta); color: #fff; }
+  .btn-primary:hover { background: #a8653e; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--sand); }
+  .btn-ghost:hover { color: var(--charcoal); border-color: var(--clay); }
+
+  /* ── Layout ── */
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    border-right: 1px solid var(--sand);
+    background: var(--warm-white);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .sidebar-section-title {
+    padding: 10px 14px 6px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1px solid var(--sand);
+    font-weight: 500;
+  }
+
+  .sidebar-list {
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .sidebar-session {
+    padding: 8px 14px 4px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(232,223,208,0.5);
+  }
+  .sidebar-session:hover { background: var(--cream); }
+  .sidebar-session.active { background: rgba(193,123,92,0.08); }
+
+  .session-id-text {
+    font-family: monospace;
+    font-size: 10px;
+    color: var(--muted);
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .session-meta-text {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  .turn-list { border-top: 1px dashed var(--sand); }
+
+  .turn-item {
+    padding: 5px 14px 5px 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .turn-item:hover { background: rgba(196,168,130,0.1); color: var(--charcoal); }
+  .turn-item.active { background: rgba(193,123,92,0.12); color: var(--charcoal); font-weight: 500; }
+
+  .turn-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-normal { background: var(--moss); }
+  .dot-cache { background: var(--clay); }
+  .dot-crisis { background: var(--red); }
+  .dot-fallback { background: var(--orange); }
+
+  /* ── Main area ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .session-header {
+    padding: 10px 20px;
+    background: var(--warm-white);
+    border-bottom: 1px solid var(--sand);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .session-header-item { font-size: 11px; color: var(--muted); }
+  .session-header-item span { font-family: monospace; color: var(--charcoal); font-size: 10px; }
+
+  /* ── Tabs ── */
+  .tabs-bar {
+    display: flex;
+    gap: 2px;
+    padding: 8px 20px 0;
+    background: var(--warm-white);
+    border-bottom: 1px solid var(--sand);
+    flex-shrink: 0;
+  }
+
+  .tab-btn {
+    padding: 6px 16px;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+  .tab-btn.active { color: var(--terracotta); border-bottom-color: var(--terracotta); }
+  .tab-btn:hover:not(.active) { color: var(--charcoal); }
+
+  .tab-pane { display: none; flex: 1; overflow-y: auto; padding: 16px 20px; }
+  .tab-pane.active { display: block; }
+
+  /* ── Empty state ── */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--muted);
+    font-size: 13px;
+    gap: 8px;
+    min-height: 200px;
+  }
+  .empty-state .big { font-size: 32px; }
+
+  /* ── Chat Flow ── */
+  .chat-flow-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .chat-flow-controls label { font-size: 11px; color: var(--muted); }
+
+  .toggle-group {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .toggle-chip {
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 1px solid var(--sand);
+    font-size: 11px;
+    cursor: pointer;
+    background: transparent;
+    color: var(--muted);
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .toggle-chip.on { background: var(--clay); color: #fff; border-color: var(--clay); }
+
+  .message-pair {
+    margin-bottom: 16px;
+    border: 1px solid var(--sand);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--warm-white);
+  }
+
+  .message-pair-header {
+    padding: 8px 14px;
+    background: var(--cream);
+    border-bottom: 1px solid var(--sand);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .turn-badge {
+    font-size: 10px;
+    font-weight: 600;
+    background: var(--clay);
+    color: #fff;
+    border-radius: 6px;
+    padding: 1px 6px;
+  }
+
+  .msg-user, .msg-bot {
+    padding: 10px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .msg-user { background: rgba(160,120,80,0.06); border-bottom: 1px solid var(--sand); }
+  .msg-user strong, .msg-bot strong { font-size: 10px; color: var(--muted); display: block; margin-bottom: 4px; letter-spacing: 0.05em; text-transform: uppercase; }
+  .msg-bot { color: var(--charcoal); }
+
+  /* Pipeline detail sections */
+  .detail-sections { border-top: 1px dashed var(--sand); }
+
+  .detail-section { border-bottom: 1px solid rgba(232,223,208,0.5); }
+
+  .detail-section-header {
+    padding: 7px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--muted);
+    user-select: none;
+  }
+  .detail-section-header:hover { background: rgba(196,168,130,0.07); }
+
+  .detail-section-header .ds-title { font-weight: 500; color: var(--bark); }
+  .detail-section-header .ds-arrow { font-size: 9px; margin-left: auto; }
+  .detail-section-body { padding: 8px 14px 10px; font-size: 12px; display: none; }
+  .detail-section-body.open { display: block; }
+
+  /* Route path */
+  .route-path {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    font-size: 11px;
+  }
+
+  .route-node {
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-family: monospace;
+    font-size: 10px;
+  }
+  .route-node.normal { background: rgba(90,138,90,0.12); color: var(--green); border: 1px solid rgba(90,138,90,0.25); }
+  .route-node.crisis { background: rgba(184,64,64,0.1); color: var(--red); border: 1px solid rgba(184,64,64,0.2); }
+  .route-node.fallback { background: rgba(193,123,44,0.1); color: var(--orange); border: 1px solid rgba(193,123,44,0.2); }
+  .route-arrow { color: var(--muted); font-size: 10px; }
+
+  /* Badges */
+  .badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+  }
+  .badge-safe { background: rgba(90,138,90,0.15); color: var(--green); }
+  .badge-redirect { background: rgba(193,123,44,0.15); color: var(--orange); }
+  .badge-crisis { background: rgba(184,64,64,0.12); color: var(--red); }
+  .badge-pass { background: rgba(90,138,90,0.15); color: var(--green); }
+  .badge-fail { background: rgba(184,64,64,0.12); color: var(--red); }
+  .badge-hit { background: rgba(74,111,165,0.12); color: var(--blue); }
+  .badge-miss { background: rgba(155,139,122,0.15); color: var(--muted); }
+  .badge-true { background: rgba(90,138,90,0.12); color: var(--green); }
+  .badge-false { background: rgba(155,139,122,0.12); color: var(--muted); }
+
+  /* KV table */
+  .kv-table { display: grid; grid-template-columns: max-content 1fr; gap: 3px 10px; }
+  .kv-k { color: var(--muted); font-size: 11px; white-space: nowrap; }
+  .kv-v { color: var(--charcoal); font-size: 11px; font-family: monospace; }
+
+  /* RAG chunks table */
+  .chunk-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; }
+  .chunk-table th { text-align: left; padding: 4px 6px; background: var(--cream); font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--sand); }
+  .chunk-table td { padding: 4px 6px; border-bottom: 1px solid rgba(232,223,208,0.4); vertical-align: top; color: var(--charcoal); }
+  .chunk-text-row td { color: var(--muted); font-size: 10px; font-style: italic; padding: 2px 6px 6px; }
+  .chunk-expand { cursor: pointer; color: var(--clay); font-size: 10px; }
+
+  /* ── Memory tab ── */
+  .mem-section { margin-bottom: 16px; }
+
+  .mem-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--cream);
+    border: 1px solid var(--sand);
+    border-radius: 10px 10px 0 0;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--bark);
+    user-select: none;
+  }
+  .mem-section-header:hover { background: var(--sand); }
+  .mem-section-header .mem-count { font-size: 10px; color: var(--muted); margin-left: auto; }
+  .mem-section-header .mem-arrow { font-size: 9px; }
+  .mem-section-body { display: none; border: 1px solid var(--sand); border-top: none; border-radius: 0 0 10px 10px; padding: 10px 12px; }
+  .mem-section-body.open { display: block; }
+
+  .msg-item { padding: 6px 0; border-bottom: 1px solid rgba(232,223,208,0.4); font-size: 12px; }
+  .msg-item:last-child { border-bottom: none; }
+  .msg-role { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+  .msg-role.user { color: var(--terracotta); }
+  .msg-role.assistant { color: var(--moss); }
+  .msg-role.system { color: var(--blue); }
+  .msg-content { color: var(--charcoal); line-height: 1.4; }
+  .msg-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+  .gem-item { padding: 7px 0; border-bottom: 1px solid rgba(232,223,208,0.4); }
+  .gem-item:last-child { border-bottom: none; }
+  .gem-type { display: inline-block; padding: 1px 7px; border-radius: 8px; font-size: 10px; font-weight: 600; margin-bottom: 4px; }
+  .gem-personal_fact { background: rgba(74,111,165,0.12); color: var(--blue); }
+  .gem-sensitive_disclosure { background: rgba(193,123,44,0.12); color: var(--orange); }
+  .gem-psych_pattern { background: rgba(122,140,110,0.15); color: var(--moss); }
+  .gem-text { font-size: 12px; color: var(--charcoal); line-height: 1.4; }
+  .gem-meta { font-size: 10px; color: var(--muted); margin-top: 3px; }
+
+  .wm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .wm-block { background: var(--cream); border: 1px solid var(--sand); border-radius: 8px; padding: 10px; }
+  .wm-block-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 6px; }
+  .wm-text { font-size: 12px; color: var(--charcoal); line-height: 1.5; white-space: pre-wrap; }
+  .wm-empty { color: var(--muted); font-style: italic; font-size: 12px; }
+
+  .epis-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .epis-table th { text-align: left; padding: 4px 6px; background: var(--cream); font-weight: 500; color: var(--muted); border-bottom: 1px solid var(--sand); }
+  .epis-table td { padding: 4px 6px; border-bottom: 1px solid rgba(232,223,208,0.4); vertical-align: top; color: var(--charcoal); font-family: monospace; font-size: 10px; }
+  .epis-text { font-family: inherit; font-size: 11px; }
+
+  /* ── Prompt tab ── */
+  .prompt-controls { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .stage-block { margin-bottom: 12px; border: 1px solid var(--sand); border-radius: 10px; overflow: hidden; }
+  .stage-header {
+    padding: 8px 14px;
+    background: var(--cream);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--bark);
+    border-bottom: 1px solid transparent;
+    user-select: none;
+  }
+  .stage-header:hover { background: var(--sand); }
+  .stage-header .stage-num { font-size: 10px; color: var(--muted); }
+  .stage-header .stage-arrow { font-size: 9px; margin-left: auto; }
+  .stage-body { display: none; padding: 10px 14px; }
+  .stage-body.open { display: block; }
+  pre.prompt-pre {
+    font-family: monospace;
+    font-size: 11px;
+    line-height: 1.55;
+    color: var(--charcoal);
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: var(--cream);
+    border-radius: 6px;
+    padding: 10px;
+  }
+
+  .refresh-btn {
+    font-size: 10px;
+    color: var(--clay);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    padding: 0;
+    margin-left: auto;
+  }
+  .refresh-btn:hover { color: var(--terracotta); text-decoration: underline; }
+
+  /* Loading / error */
+  .loading { color: var(--muted); font-size: 12px; padding: 10px 0; }
+  .error-text { color: var(--red); font-size: 12px; padding: 8px 0; }
+
+  /* Scrollbars */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--sand); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="topbar-title">🔬 TheraBot Debug</div>
+  <span class="topbar-sep">|</span>
+  <a href="/">← Back to Chat</a>
+  <div class="user-input-wrap">
+    <label for="userIdInput">User ID:</label>
+    <input id="userIdInput" type="text" placeholder="paste user UUID here…" autocomplete="off">
+    <button class="btn-sm btn-primary" onclick="loadUser()">Load</button>
+  </div>
+</div>
+
+<!-- Main layout -->
+<div class="layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-section-title">Sessions</div>
+    <div class="sidebar-list" id="sessionList">
+      <div style="padding:12px 14px; font-size:11px; color:var(--muted);">Enter a user ID above</div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <div class="main" id="mainContent">
+    <!-- Session header -->
+    <div class="session-header" id="sessionHeader" style="display:none">
+      <div class="session-header-item">Session: <span id="hdrSession">—</span></div>
+      <div class="session-header-item">User: <span id="hdrUser">—</span></div>
+      <div class="session-header-item">Turn: <span id="hdrTurn">—</span></div>
+      <div class="session-header-item">Time: <span id="hdrTime">—</span></div>
+    </div>
+
+    <!-- Tabs bar -->
+    <div class="tabs-bar" id="tabsBar" style="display:none">
+      <button class="tab-btn active" onclick="switchTab('chat', this)">Chat Flow</button>
+      <button class="tab-btn" onclick="switchTab('memory', this)">Memory</button>
+      <button class="tab-btn" onclick="switchTab('prompt', this)">Prompt</button>
+    </div>
+
+    <!-- Tab: Chat Flow -->
+    <div class="tab-pane active" id="tab-chat">
+      <div class="empty-state" id="chatEmpty">
+        <div class="big">💬</div>
+        <div>Select a session and turn to inspect</div>
+      </div>
+      <div id="chatContent" style="display:none">
+        <div class="chat-flow-controls">
+          <label>Show:</label>
+          <div class="toggle-group" id="toggleGroup"></div>
+          <button class="btn-sm btn-ghost" style="margin-left:auto" onclick="toggleAll(true)">Show all</button>
+          <button class="btn-sm btn-ghost" onclick="toggleAll(false)">Hide all</button>
+        </div>
+        <div id="chatBody"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Memory -->
+    <div class="tab-pane" id="tab-memory">
+      <div class="empty-state" id="memEmpty">
+        <div class="big">🧠</div>
+        <div>Select a session to inspect memory</div>
+      </div>
+      <div id="memContent" style="display:none">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="font-size:12px;color:var(--muted)">Memory for current session</span>
+          <button class="refresh-btn" onclick="loadMemory()">↻ Refresh</button>
+        </div>
+        <div id="memBody"></div>
+      </div>
+    </div>
+
+    <!-- Tab: Prompt -->
+    <div class="tab-pane" id="tab-prompt">
+      <div class="empty-state" id="promptEmpty">
+        <div class="big">📝</div>
+        <div>Select a turn to inspect its system prompt</div>
+      </div>
+      <div id="promptContent" style="display:none">
+        <div class="prompt-controls">
+          <span style="font-size:12px;color:var(--muted)">System prompt stages</span>
+          <button class="btn-sm btn-ghost" onclick="expandAllStages(true)">Expand all</button>
+          <button class="btn-sm btn-ghost" onclick="expandAllStages(false)">Collapse all</button>
+          <button class="btn-sm btn-ghost" style="margin-left:auto" onclick="copyFullPrompt()">Copy full prompt</button>
+        </div>
+        <div id="promptBody"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let state = {
+  userId: null,
+  sessionId: null,
+  turnNumber: null,
+  currentTrace: null,
+  currentMemory: null,
+  sessions: [],
+};
+
+const TOGGLE_KEYS = ['pipeline', 'gate', 'rag', 'llm', 'memory_ctx', 'alpha', 'cache'];
+const TOGGLE_LABELS = {
+  pipeline: 'Pipeline',
+  gate: 'Gate',
+  rag: 'RAG',
+  llm: 'LLM',
+  memory_ctx: 'Memory ctx',
+  alpha: 'Alpha',
+  cache: 'Cache',
+};
+
+function getToggles() {
+  try {
+    const raw = localStorage.getItem('tb_eval_toggles');
+    if (raw) return JSON.parse(raw);
+  } catch (_) {}
+  // Default: all on
+  return Object.fromEntries(TOGGLE_KEYS.map(k => [k, true]));
+}
+
+function saveToggles(t) {
+  localStorage.setItem('tb_eval_toggles', JSON.stringify(t));
+}
+
+// ── User / session loading ────────────────────────────────────────────────────
+async function loadUser() {
+  const input = document.getElementById('userIdInput');
+  const uid = input.value.trim();
+  if (!uid) return;
+  state.userId = uid;
+
+  const list = document.getElementById('sessionList');
+  list.innerHTML = '<div class="loading" style="padding:12px 14px">Loading…</div>';
+
+  try {
+    const res = await fetch(`/api/eval/users/${encodeURIComponent(uid)}/sessions`);
+    if (!res.ok) throw new Error(await res.text());
+    const sessions = await res.json();
+    state.sessions = sessions;
+    renderSessionList(sessions);
+  } catch (err) {
+    list.innerHTML = `<div class="error-text" style="padding:12px 14px">${err.message}</div>`;
+  }
+}
+
+function renderSessionList(sessions) {
+  const list = document.getElementById('sessionList');
+  if (!sessions.length) {
+    list.innerHTML = '<div style="padding:12px 14px;font-size:11px;color:var(--muted)">No sessions found</div>';
+    return;
+  }
+  // Sort newest first
+  sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  list.innerHTML = sessions.map(s => `
+    <div class="sidebar-session" id="sess-${s.id}" onclick="loadSession('${s.id}')">
+      <span class="session-id-text">${s.id}</span>
+      <span class="session-meta-text">${fmtDate(s.created_at)} · ${s.message_count} msgs</span>
+    </div>
+  `).join('');
+}
+
+async function loadSession(sessionId) {
+  state.sessionId = sessionId;
+  state.turnNumber = null;
+  state.currentTrace = null;
+  state.currentMemory = null;
+
+  // Highlight session
+  document.querySelectorAll('.sidebar-session').forEach(el => el.classList.remove('active'));
+  const sessEl = document.getElementById(`sess-${sessionId}`);
+  if (sessEl) {
+    sessEl.classList.add('active');
+    // Remove any existing turn lists under this session
+    const existing = sessEl.nextElementSibling;
+    if (existing && existing.classList.contains('turn-list')) existing.remove();
+  }
+
+  // Update header
+  document.getElementById('sessionHeader').style.display = '';
+  document.getElementById('tabsBar').style.display = '';
+  document.getElementById('hdrSession').textContent = sessionId.slice(0, 8) + '…';
+  document.getElementById('hdrUser').textContent = (state.userId || '').slice(0, 8) + '…';
+  document.getElementById('hdrTurn').textContent = '—';
+  document.getElementById('hdrTime').textContent = '—';
+
+  // Load turn list
+  try {
+    const res = await fetch(`/api/eval/traces/${encodeURIComponent(sessionId)}?last=200`);
+    if (!res.ok) throw new Error(await res.text());
+    const summaries = await res.json();
+    renderTurnList(sessionId, summaries, sessEl);
+  } catch (err) {
+    if (sessEl) {
+      const errEl = document.createElement('div');
+      errEl.className = 'error-text';
+      errEl.style.padding = '6px 14px';
+      errEl.textContent = 'Error loading turns';
+      sessEl.after(errEl);
+    }
+  }
+
+  // Load memory for this session
+  loadMemory();
+}
+
+function renderTurnList(sessionId, summaries, afterEl) {
+  if (!summaries.length) return;
+  const turnListEl = document.createElement('div');
+  turnListEl.className = 'turn-list';
+  turnListEl.id = `turns-${sessionId}`;
+  turnListEl.innerHTML = summaries.map(s => {
+    const dotCls = s.cache_hit ? 'dot-cache'
+      : (s.safety_label === 'CRISIS' ? 'dot-crisis'
+      : (s.alpha_passed === false ? 'dot-fallback' : 'dot-normal'));
+    return `<div class="turn-item" id="turn-item-${s.turn_number}" onclick="loadTurn('${sessionId}', ${s.turn_number})">
+      <span class="turn-dot ${dotCls}"></span>
+      Turn ${s.turn_number}
+      ${s.cache_hit ? '<span style="font-size:9px;color:var(--clay)">cache</span>' : ''}
+      ${s.safety_label === 'CRISIS' ? '<span style="font-size:9px;color:var(--red)">crisis</span>' : ''}
+    </div>`;
+  }).join('');
+  if (afterEl) afterEl.after(turnListEl);
+}
+
+async function loadTurn(sessionId, turnNumber) {
+  state.turnNumber = turnNumber;
+
+  document.querySelectorAll('.turn-item').forEach(el => el.classList.remove('active'));
+  const ti = document.getElementById(`turn-item-${turnNumber}`);
+  if (ti) ti.classList.add('active');
+
+  try {
+    const res = await fetch(`/api/eval/traces/${encodeURIComponent(sessionId)}/${turnNumber}`);
+    if (!res.ok) throw new Error(await res.text());
+    const trace = await res.json();
+    state.currentTrace = trace;
+
+    // Update header
+    document.getElementById('hdrTurn').textContent = `${turnNumber}`;
+    document.getElementById('hdrTime').textContent = fmtDate(trace.timestamp);
+
+    renderChatFlow(trace);
+    renderPromptTab(trace);
+  } catch (err) {
+    document.getElementById('chatEmpty').style.display = '';
+    document.getElementById('chatContent').style.display = 'none';
+    document.getElementById('chatEmpty').querySelector('div:last-child').textContent = 'Error: ' + err.message;
+  }
+}
+
+// ── Chat Flow ─────────────────────────────────────────────────────────────────
+function renderChatFlow(trace) {
+  document.getElementById('chatEmpty').style.display = 'none';
+  document.getElementById('chatContent').style.display = '';
+
+  // Render toggle chips
+  const toggles = getToggles();
+  const tg = document.getElementById('toggleGroup');
+  tg.innerHTML = TOGGLE_KEYS.map(k => `
+    <button class="toggle-chip ${toggles[k] ? 'on' : ''}" onclick="flipToggle('${k}', this)">${TOGGLE_LABELS[k]}</button>
+  `).join('');
+
+  const body = document.getElementById('chatBody');
+  body.innerHTML = '';
+
+  const pair = document.createElement('div');
+  pair.className = 'message-pair';
+
+  // Header row
+  const safetyBadge = trace.safety_label
+    ? `<span class="badge badge-${(trace.safety_label||'').toLowerCase()}">${trace.safety_label}</span>`
+    : '';
+  const cacheBadge = trace.cache_hit
+    ? '<span class="badge badge-hit">CACHE HIT</span>'
+    : '<span class="badge badge-miss">CACHE MISS</span>';
+
+  pair.innerHTML = `
+    <div class="message-pair-header">
+      <span class="turn-badge">Turn ${trace.turn_number}</span>
+      ${safetyBadge}
+      ${cacheBadge}
+      <span style="margin-left:auto;color:var(--muted);font-family:monospace;font-size:10px">${fmtDate(trace.timestamp)}</span>
+    </div>
+    <div class="msg-user">
+      <strong>User</strong>${escHtml(trace.user_message)}
+    </div>
+    <div class="msg-bot">
+      <strong>TheraBot</strong>${escHtml(trace.response)}
+    </div>
+    <div class="detail-sections" id="detailSections"></div>
+  `;
+
+  body.appendChild(pair);
+  renderDetailSections(document.getElementById('detailSections'), trace, toggles);
+}
+
+function renderDetailSections(container, trace, toggles) {
+  const sections = [
+    { key: 'pipeline', title: 'Pipeline', fn: renderPipelineSection },
+    { key: 'gate', title: 'Gate outputs', fn: renderGateSection },
+    { key: 'rag', title: 'RAG', fn: renderRagSection },
+    { key: 'llm', title: 'LLM', fn: renderLlmSection },
+    { key: 'memory_ctx', title: 'Memory context', fn: renderMemCtxSection },
+    { key: 'alpha', title: 'Alpha check', fn: renderAlphaSection },
+    { key: 'cache', title: 'Cache', fn: renderCacheSection },
+  ];
+
+  container.innerHTML = sections.map(s => `
+    <div class="detail-section" id="ds-${s.key}">
+      <div class="detail-section-header" onclick="toggleSection('${s.key}', this)">
+        <span class="ds-title">${s.title}</span>
+        <span class="ds-arrow">${toggles[s.key] ? '▲' : '▼'}</span>
+      </div>
+      <div class="detail-section-body ${toggles[s.key] ? 'open' : ''}" id="dsb-${s.key}"></div>
+    </div>
+  `).join('');
+
+  sections.forEach(s => {
+    const el = document.getElementById(`dsb-${s.key}`);
+    if (el) s.fn(el, trace);
+  });
+}
+
+function renderPipelineSection(el, trace) {
+  const isCrisis = trace.routing_path.includes('crisis_response');
+  const isFallback = trace.routing_path.includes('fallback_response');
+  const nodes = trace.routing_path.map(entry => {
+    const cls = isCrisis ? 'crisis' : (isFallback ? 'fallback' : 'normal');
+    return `<span class="route-node ${cls}">${escHtml(entry)}</span>`;
+  });
+  el.innerHTML = `<div class="route-path">${nodes.join('<span class="route-arrow">→</span>')}</div>`;
+}
+
+function renderGateSection(el, trace) {
+  el.innerHTML = `<div class="kv-table">
+    <span class="kv-k">Safety label</span>
+    <span class="kv-v">${trace.safety_label
+      ? `<span class="badge badge-${(trace.safety_label||'').toLowerCase()}">${trace.safety_label}</span>`
+      : '<span class="badge badge-false">null</span>'}</span>
+    <span class="kv-k">Confidence</span>
+    <span class="kv-v">${trace.safety_confidence !== null && trace.safety_confidence !== undefined ? trace.safety_confidence.toFixed(3) : '—'}</span>
+    <span class="kv-k">RAG required</span>
+    <span class="kv-v"><span class="badge badge-${trace.rag_required ? 'true' : 'false'}">${trace.rag_required}</span></span>
+    <span class="kv-k">Personal info detected</span>
+    <span class="kv-v">—</span>
+  </div>`;
+}
+
+function renderRagSection(el, trace) {
+  if (!trace.rag_required && trace.retrieved_knowledge_count === 0) {
+    el.innerHTML = '<span style="color:var(--muted);font-size:12px">RAG not triggered for this turn.</span>';
+    return;
+  }
+  const chunks = trace.retrieved_chunks || [];
+  el.innerHTML = `<div class="kv-table" style="margin-bottom:8px">
+    <span class="kv-k">Rewritten query</span>
+    <span class="kv-v">${escHtml(trace.rewritten_query || '—')}</span>
+    <span class="kv-k">Chunks retrieved</span>
+    <span class="kv-v">${trace.retrieved_knowledge_count}</span>
+    <span class="kv-k">Skill categories</span>
+    <span class="kv-v">${(trace.retrieved_skill_categories||[]).join(', ') || '—'}</span>
+  </div>
+  ${chunks.length ? `<table class="chunk-table">
+    <thead><tr><th>Handout</th><th>Module</th><th>Category</th><th>Score</th></tr></thead>
+    <tbody>${chunks.map((c, i) => `
+      <tr onclick="toggleRow('chunk-text-${i}')">
+        <td>${escHtml(c.handout_id||'')}</td>
+        <td>${escHtml(c.module||'')}</td>
+        <td>${escHtml(c.skill_category||'')}</td>
+        <td>${c.score !== undefined ? c.score.toFixed(3) : '—'} <span class="chunk-expand">▼</span></td>
+      </tr>
+      <tr class="chunk-text-row" id="chunk-text-${i}" style="display:none">
+        <td colspan="4">${escHtml(c.text||'')}</td>
+      </tr>
+    `).join('')}</tbody>
+  </table>` : ''}`;
+}
+
+function renderLlmSection(el, trace) {
+  if (!trace.llm_model) {
+    el.innerHTML = '<span style="color:var(--muted);font-size:12px">No LLM call (cache hit or crisis).</span>';
+    return;
+  }
+  const cost = trace.llm_cost_usd !== null && trace.llm_cost_usd !== undefined
+    ? '$' + trace.llm_cost_usd.toFixed(6) : '—';
+  el.innerHTML = `<div class="kv-table">
+    <span class="kv-k">Model</span><span class="kv-v">${escHtml(trace.llm_model)}</span>
+    <span class="kv-k">Input tokens</span><span class="kv-v">${trace.llm_input_tokens ?? '—'}</span>
+    <span class="kv-k">Output tokens</span><span class="kv-v">${trace.llm_output_tokens ?? '—'}</span>
+    <span class="kv-k">Cost</span><span class="kv-v">${cost}</span>
+  </div>`;
+}
+
+function renderMemCtxSection(el, trace) {
+  el.innerHTML = `<div class="kv-table">
+    <span class="kv-k">Working memory</span>
+    <span class="kv-v"><span class="badge badge-${trace.had_working_memory ? 'true' : 'false'}">${trace.had_working_memory}</span>
+      ${trace.had_working_memory && trace.working_memory_text ? `<br><span style="font-size:10px;color:var(--muted)">${escHtml(trace.working_memory_text.slice(0,120))}…</span>` : ''}</span>
+    <span class="kv-k">Episodic chunks</span>
+    <span class="kv-v">${trace.episodic_count} injected</span>
+    <span class="kv-k">Long-term gems</span>
+    <span class="kv-v">${trace.longterm_count} injected</span>
+    <span class="kv-k">Special instructions</span>
+    <span class="kv-v">${trace.had_special_instructions
+      ? trace.special_instructions.map(s => `<div style="font-size:10px;color:var(--charcoal)">${escHtml(s.slice(0,80))}</div>`).join('')
+      : '<span class="badge badge-false">none</span>'}</span>
+  </div>`;
+}
+
+function renderAlphaSection(el, trace) {
+  if (trace.alpha_passed === null || trace.alpha_passed === undefined) {
+    el.innerHTML = '<span style="color:var(--muted);font-size:12px">Alpha check not run (cache hit or crisis).</span>';
+    return;
+  }
+  el.innerHTML = `<div class="kv-table">
+    <span class="kv-k">Result</span>
+    <span class="kv-v"><span class="badge badge-${trace.alpha_passed ? 'pass' : 'fail'}">${trace.alpha_passed ? 'PASS' : 'FAIL'}</span></span>
+    <span class="kv-k">Flags</span>
+    <span class="kv-v">${(trace.alpha_flags||[]).length ? trace.alpha_flags.join(', ') : '—'}</span>
+  </div>`;
+}
+
+function renderCacheSection(el, trace) {
+  el.innerHTML = `<div class="kv-table">
+    <span class="kv-k">Cache hit</span>
+    <span class="kv-v"><span class="badge badge-${trace.cache_hit ? 'hit' : 'miss'}">${trace.cache_hit ? 'HIT' : 'MISS'}</span></span>
+    ${trace.cache_hit ? `<span class="kv-k">Note</span><span class="kv-v" style="font-size:10px;color:var(--muted)">Response was reformulated from cache — no LLM dispatch occurred.</span>` : ''}
+  </div>`;
+}
+
+// ── Toggle logic ───────────────────────────────────────────────────────────────
+function flipToggle(key, btn) {
+  const toggles = getToggles();
+  toggles[key] = !toggles[key];
+  saveToggles(toggles);
+  btn.classList.toggle('on', toggles[key]);
+  const body = document.getElementById(`dsb-${key}`);
+  const arrow = document.querySelector(`#ds-${key} .ds-arrow`);
+  if (body) body.classList.toggle('open', toggles[key]);
+  if (arrow) arrow.textContent = toggles[key] ? '▲' : '▼';
+}
+
+function toggleSection(key, headerEl) {
+  const body = document.getElementById(`dsb-${key}`);
+  const arrow = headerEl.querySelector('.ds-arrow');
+  const isOpen = body.classList.toggle('open');
+  if (arrow) arrow.textContent = isOpen ? '▲' : '▼';
+  // Also sync the chip
+  const chip = document.querySelector(`.toggle-chip[onclick*="'${key}'"]`);
+  if (chip) chip.classList.toggle('on', isOpen);
+  const toggles = getToggles();
+  toggles[key] = isOpen;
+  saveToggles(toggles);
+}
+
+function toggleAll(show) {
+  const toggles = getToggles();
+  TOGGLE_KEYS.forEach(k => { toggles[k] = show; });
+  saveToggles(toggles);
+  document.querySelectorAll('.toggle-chip').forEach((chip, i) => {
+    chip.classList.toggle('on', show);
+  });
+  document.querySelectorAll('.detail-section-body').forEach(el => {
+    el.classList.toggle('open', show);
+  });
+  document.querySelectorAll('.ds-arrow').forEach(el => {
+    el.textContent = show ? '▲' : '▼';
+  });
+}
+
+function toggleRow(id) {
+  const row = document.getElementById(id);
+  if (row) row.style.display = row.style.display === 'none' ? '' : 'none';
+}
+
+// ── Memory tab ────────────────────────────────────────────────────────────────
+async function loadMemory() {
+  if (!state.sessionId || !state.userId) return;
+
+  const empty = document.getElementById('memEmpty');
+  const content = document.getElementById('memContent');
+  const body = document.getElementById('memBody');
+
+  empty.style.display = 'none';
+  content.style.display = '';
+  body.innerHTML = '<div class="loading">Loading memory…</div>';
+
+  try {
+    const res = await fetch(`/api/eval/memory/${encodeURIComponent(state.userId)}/${encodeURIComponent(state.sessionId)}`);
+    if (!res.ok) throw new Error(await res.text());
+    const mem = await res.json();
+    state.currentMemory = mem;
+    renderMemory(mem);
+  } catch (err) {
+    body.innerHTML = `<div class="error-text">Error: ${escHtml(err.message)}</div>`;
+  }
+}
+
+function renderMemory(mem) {
+  const body = document.getElementById('memBody');
+  body.innerHTML = '';
+
+  // Working memory
+  body.appendChild(memSection('Working Memory', `
+    <div class="wm-grid">
+      <div class="wm-block">
+        <div class="wm-block-title">Current block</div>
+        ${mem.working_memory_current
+          ? `<pre class="wm-text">${escHtml(mem.working_memory_current)}</pre>`
+          : '<div class="wm-empty">Not set</div>'}
+      </div>
+      <div class="wm-block">
+        <div class="wm-block-title">Backlog</div>
+        ${mem.working_memory_backlog
+          ? `<pre class="wm-text">${escHtml(mem.working_memory_backlog)}</pre>`
+          : '<div class="wm-empty">Not set</div>'}
+      </div>
+    </div>
+  `, true));
+
+  // Session messages
+  const msgs = mem.session_messages || [];
+  body.appendChild(memSection(`Session Messages`, msgs.length === 0
+    ? '<div class="wm-empty">No messages in store</div>'
+    : msgs.map(m => `
+      <div class="msg-item">
+        <div class="msg-role ${m.role}">${m.role.toUpperCase()}</div>
+        <div class="msg-content">${escHtml(m.content)}</div>
+        ${m.model ? `<div class="msg-meta">${m.model} · ${m.input_tokens ?? 0} in / ${m.output_tokens ?? 0} out · $${(m.cost_usd||0).toFixed(6)}</div>` : ''}
+      </div>
+    `).join(''), false, `${msgs.length} messages`));
+
+  // Episodic chunks
+  const epis = mem.episodic_chunks || [];
+  body.appendChild(memSection('Episodic Store', epis.length === 0
+    ? '<div class="wm-empty">No episodic turns stored</div>'
+    : `<table class="epis-table">
+      <thead><tr><th>Turn</th><th>Timestamp</th><th>RAG</th><th>Skills</th><th>Text (expand)</th></tr></thead>
+      <tbody>${epis.map((c, i) => `
+        <tr onclick="toggleRow('epis-text-${i}')" style="cursor:pointer">
+          <td>${c.turn_number ?? '—'}</td>
+          <td>${fmtDate(c.timestamp||'')}</td>
+          <td><span class="badge badge-${c.rag_triggered ? 'true':'false'}">${c.rag_triggered||false}</span></td>
+          <td style="font-family:inherit;font-size:11px">${(c.skill_categories || '').toString().replace(/[\[\]']+/g, '')}</td>
+          <td class="epis-text">${escHtml((c.text||'').slice(0,60))}… <span style="color:var(--clay);font-size:10px">▼</span></td>
+        </tr>
+        <tr id="epis-text-${i}" style="display:none">
+          <td colspan="5" style="font-size:11px;color:var(--muted);padding:4px 6px 8px;white-space:pre-wrap">${escHtml(c.text||'')}</td>
+        </tr>
+      `).join('')}</tbody>
+    </table>`, false, `${epis.length} turns`));
+
+  // Long-term gems
+  const gems = mem.longterm_gems || [];
+  const gemsByType = {};
+  gems.forEach(g => {
+    const t = g.memory_type || 'unknown';
+    if (!gemsByType[t]) gemsByType[t] = [];
+    gemsByType[t].push(g);
+  });
+  body.appendChild(memSection('Long-term Gems', gems.length === 0
+    ? '<div class="wm-empty">No long-term gems stored</div>'
+    : Object.entries(gemsByType).map(([type, items]) =>
+        items.map(g => `
+          <div class="gem-item">
+            <span class="gem-type gem-${type}">${type.replace('_', ' ')}</span>
+            <div class="gem-text">${escHtml(g.text||'')}</div>
+            <div class="gem-meta">Turn ${g.turn_number ?? '—'} · ${fmtDate(g.timestamp||'')} · score ${g.score !== undefined ? g.score.toFixed(3) : '—'}</div>
+          </div>
+        `).join('')
+      ).join(''), false, `${gems.length} gems`));
+
+  // Semantic cache
+  const cache = mem.semantic_cache_entries || [];
+  body.appendChild(memSection('Semantic Cache', cache.length === 0
+    ? '<div class="wm-empty">Cache empty</div>'
+    : cache.map((e, i) => `
+      <div class="msg-item">
+        <div class="msg-meta" style="margin-bottom:3px">${fmtDate(e.timestamp||'')}</div>
+        <div class="msg-content">${escHtml((e.response||'').slice(0, 120))}…</div>
+      </div>
+    `).join(''), false, `${cache.length} entries`));
+
+  // Sensitive flag
+  body.appendChild(memSection('Sensitive Flag', mem.sensitive_flag
+    ? `<div class="kv-table">
+        <span class="kv-k">Raised at turn</span>
+        <span class="kv-v">${mem.sensitive_flag.raised_at_turn ?? '—'}</span>
+      </div>`
+    : '<div class="wm-empty">Not active</div>', false));
+}
+
+function memSection(title, bodyHtml, defaultOpen = false, count = '') {
+  const wrap = document.createElement('div');
+  wrap.className = 'mem-section';
+  wrap.innerHTML = `
+    <div class="mem-section-header" onclick="this.nextElementSibling.classList.toggle('open')">
+      ${title}
+      ${count ? `<span class="mem-count">${count}</span>` : ''}
+      <span class="mem-arrow">▼</span>
+    </div>
+    <div class="mem-section-body ${defaultOpen ? 'open' : ''}">${bodyHtml}</div>
+  `;
+  return wrap;
+}
+
+// ── Prompt tab ────────────────────────────────────────────────────────────────
+function renderPromptTab(trace) {
+  const empty = document.getElementById('promptEmpty');
+  const content = document.getElementById('promptContent');
+  const body = document.getElementById('promptBody');
+
+  if (!trace.system_prompt) {
+    empty.style.display = '';
+    content.style.display = 'none';
+    empty.querySelector('div:last-child').textContent = 'No system prompt — cache hit turn.';
+    return;
+  }
+
+  empty.style.display = 'none';
+  content.style.display = '';
+
+  const STAGE_SEP = '\n\n---\n\n';
+  const stages = trace.system_prompt.split(STAGE_SEP);
+  const stageNames = ['Stage 1 — Identity', 'Stage 2 — DBT Knowledge', 'Stage 2.5 — Session Memory', 'Stage 3 — Safety Escalation', 'Stage 4 — Format', 'Stage 5 — Special Instructions'];
+
+  body.innerHTML = stages.map((text, i) => {
+    const name = stageNames[i] || `Stage ${i+1}`;
+    return `
+      <div class="stage-block">
+        <div class="stage-header" onclick="this.nextElementSibling.classList.toggle('open'); this.querySelector('.stage-arrow').textContent = this.nextElementSibling.classList.contains('open') ? '▲' : '▼'">
+          <span class="stage-num">${name}</span>
+          <span style="margin-left:auto;font-size:10px;color:var(--muted)">${text.length} chars</span>
+          <span class="stage-arrow">▼</span>
+        </div>
+        <div class="stage-body">
+          <pre class="prompt-pre">${escHtml(text)}</pre>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function expandAllStages(expand) {
+  document.querySelectorAll('.stage-body').forEach(el => {
+    el.classList.toggle('open', expand);
+  });
+  document.querySelectorAll('.stage-header .stage-arrow').forEach(el => {
+    el.textContent = expand ? '▲' : '▼';
+  });
+}
+
+function copyFullPrompt() {
+  if (!state.currentTrace?.system_prompt) return;
+  navigator.clipboard.writeText(state.currentTrace.system_prompt)
+    .then(() => alert('Copied to clipboard'))
+    .catch(() => alert('Copy failed — try manually'));
+}
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  btn.classList.add('active');
+
+  if (name === 'memory' && !state.currentMemory && state.sessionId) {
+    loadMemory();
+  }
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function fmtDate(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  } catch (_) { return iso; }
+}
+
+// Handle Enter key in user ID input
+document.getElementById('userIdInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') loadUser();
+});
+
+// Pre-fill user ID from localStorage if available
+const savedUid = localStorage.getItem('tb_eval_uid');
+if (savedUid) document.getElementById('userIdInput').value = savedUid;
+
+// Save user ID on load
+document.getElementById('userIdInput').addEventListener('change', e => {
+  localStorage.setItem('tb_eval_uid', e.target.value.trim());
+});
+</script>
+</body>
+</html>

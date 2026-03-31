@@ -76,9 +76,11 @@ async def budget_error_handler(request: Request, exc: BudgetExceededError) -> JS
 
 from app.api.chat import router as chat_router  # noqa: E402
 from app.api.health import router as health_router  # noqa: E402
+from app.api.traces import router as traces_router  # noqa: E402
 
 app.include_router(chat_router)
 app.include_router(health_router)
+app.include_router(traces_router)
 
 
 # --- Chat UI ---
@@ -87,5 +89,10 @@ app.include_router(health_router)
 @app.get("/", include_in_schema=False)
 async def serve_ui() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/eval", include_in_schema=False)
+async def serve_eval_ui() -> FileResponse:
+    return FileResponse(STATIC_DIR / "eval.html")
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
